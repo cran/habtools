@@ -1,0 +1,149 @@
+---
+title: "Complexity metrics for 3D meshes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Complexity metrics for 3D meshes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 4,
+  fig.height = 4
+)
+```
+
+```{r setup, message = FALSE}
+library(habtools)
+library(rgl)
+options(rgl.printRglwidget = TRUE)
+```
+
+## Checking your mesh  
+
+`habtools` includes a wide range of 3D metrics applicable to meshes. 
+
+Before calculating any metrics, visualize your mesh and make sure that the z orientation is correct, as this may affect some of the calculations.
+```{r, eval=FALSE}
+plot3d(mcap)
+```
+              
+![](../man/figures/README-setup2-1-rgl.png)
+            
+
+Depending on how the mesh was generated (e.g. with the use of a laser scanner), the resolutions (distance between vertices inside the mesh) can vary a lot. This may affect calculations such as fractal dimension. Check the distribution of resolution of your object and if needed, remesh to make the resolution more uniform.
+
+
+```{r}
+resvec <- Rvcg::vcgMeshres(mcap)[[2]] # vector of resolutions
+hist(resvec)
+summary(resvec)
+```
+
+In our example, the `mcap` object has very variable distances between vertices. We can solve this issue by re-meshing the object with the Rvcg function `vgcUniformRemesh()`. Here we set the resolution (voxelSize) to the minimum distance between points in the original mesh to ensure we don't loose details. This choice may be made on a case-to-case basis. Setting `multisample=TRUE` improves the accuracy of distance field computation, but slows down the calculation so this choice may be defined by computing power and the size of your object. The re-meshed object now has a mean resolution of approximately the minimum of `resvec`. While there will still be some variation in the obtained distances between vertices, the variation will be much smaller. An alternative option would be to re-mesh using an external 3D software such as blender. 
+
+```{r}
+mcap_uniform <- Rvcg::vcgUniformRemesh(mcap, silent = TRUE, multiSample = TRUE, voxelSize = min(resvec), mergeClost = TRUE)
+Rvcg::vcgMeshres(mcap_uniform)[[1]]
+summary(Rvcg::vcgMeshres(mcap_uniform)[[2]])
+```
+
+## Complexity metrics: R, D, and H   
+
+The three main metrics for DEMs also work for meshes. The recommended method for fractal dimension is `cubes`.
+
+```{r}
+# fractal dimension
+fd(mcap_uniform, method = "cubes", plot = TRUE, diagnose = TRUE)
+```
+
+### Rugosity
+```{r}
+# rugosity
+rg(mcap_uniform)
+
+# height range 
+hr(mcap_uniform)
+
+```
+
+For fractal dimension, two methods are available: `cubes` and `area`. 
+In the `cubes` method, fractal dimension is calculated as the slope of $log10(n) \sim log10(l)$, where `n` is the total number of cubes that contains any surface of the object and `l` is the size of the cubes (elements of `lvec`).
+In the `area` method, the mesh is re-meshed at varying resolutions (`lvec`). 
+Further, you can calculate planar and total surface area of the object.
+
+```{r}
+planar(mcap)
+surface_area(mcap)
+```
+
+## Shape Metrics
+
+There are a number of other metrics that tell you more about the shape of the object. See Zawada et al. (2019) for an example of an application of these metrics on corals.  
+
+- **Convexity:** the ratio of the volume of the object and the volume of the convex hull around the object.  
+- **Packing:** The ratio of the surface area of the object and the surface area of the convex hull around the object.    
+- **Sphericity:** The ratio of the surface area of a sphere with the same volume as the object and the surface area of the object.  
+- **Second moment of area (`sma`):** A measure of top-heaviness using area. Calculated by multiplying the surface area of each triangle in the mesh by its vertical distance from the origin.  
+- **Second moment of volume (`smv`):** A measure of top-heaviness using volume. For each triangle in the mesh, a tetrahedron between the triangle and the origin was calculated. The signed volume of each tetrahedron was multiplied by the vertical distance between the centroid of the tetrahedron and the centroid of the attachment plane.      
+- **Mechanical shape factor (`csf`):**  Mechanical vulnerability of a structural element (Madin & Connolly, 2006).  
+
+```{r}
+# convexity
+convexity(mcap)
+
+# packing
+packing(mcap)
+
+# sphericity
+sphericity(mcap)
+
+# second moment of area
+sma(mcap)
+
+# second moment of volume
+smv(mcap)
+
+# mechanical shape factor
+csf(mcap)
+
+```
+
+## Transform mesh into a DEM or 2D shape    
+
+You can also transform a 3D mesh to a DEM, and then apply DEM functions to the surface.
+
+```{r, message=FALSE}
+dem <- mesh_to_dem(mcap_uniform, res = 0.002, fill = FALSE)
+raster::plot(dem)
+rg(dem, method = "area") 
+```
+
+You can also transform a 3D mesh to a 2D drawing, and then apply 2D functions to the object.
+Note that fractal dimension ranges between 1 and 2 for 2D drawings, rather than 2 and 3 for 3D meshes. 
+
+```{r}
+pts <- mesh_to_2d(mcap_uniform)
+plot(pts, asp=1)
+
+# perimeter
+perimeter(pts)
+
+# circularity
+circularity(pts)
+
+# fractal dimension
+fd(pts, method = "boxes", keep_data = FALSE, plot = TRUE)
+
+```
+
+
+## References       
+
+- Zawada KJA, Dornelas M, Madin JS (2019) Quantifying coral morphology. Coral Reefs, 38:1281–1292.  
+- Madin JS & Connolly SR (2006) Ecological consequences of major hydrodynamic disturbances on coral reefs. Nature. 444:477-480.  
+
+
