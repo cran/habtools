@@ -1,14 +1,15 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# habtools
+# habtools <img src="man/figures/habtools_logo.png" align="right" alt="" width="120"/>
 
 <!-- badges: start -->
 
 [![R-CMD-check](https://github.com/jmadinlab/habtools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/jmadinlab/habtools/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/habtools)](https://CRAN.R-project.org/package=habtools)
+[![Downloads](https://cranlogs.r-pkg.org/badges/grand-total/habtools?color=brightgreen)](https://CRAN.R-project.org/package=habtools)
 <!-- badges: end -->
-
-<img src="man/figures/habtools_logo.png" width = 120 alt="fishflux logo"/>
 
 A collection of functions for sampling and simulating 3D surfaces and
 objects and estimating metrics like rugosity, fractal dimension,
@@ -17,8 +18,14 @@ and more.
 
 ### Installation
 
-A CRAN version of `habtools` is forthcoming. You can also install the
-development version from [GitHub](https://github.com/) with:
+The best way to install `habtools` is through cran.
+
+``` r
+install.packages("habtools")
+```
+
+You can also install the development version from
+[GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
