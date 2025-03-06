@@ -2,7 +2,7 @@
 #'
 #' @param data An object of class RasterLayer or mesh3d.
 #' @param lvec Vector of scales to use for calculation (i.e. cube sizes).
-#' @param keep_data Logical. Keep calculation data? Default = TRUE.
+#' @param keep_data Logical. Keep calculation data? Default = FALSE.
 #' @param plot Planar representation of cubes superimposed on 3D mesh or DEM for visualizing `lvec`. Default = FALSE.
 #' @param scale Logical. Rescale height values to the extent? Only relevant for RasterLayer objects. (Defaults to FALSE).
 #'
@@ -33,9 +33,12 @@ fd_cubes <- function(data, lvec = NULL, plot = FALSE, keep_data = FALSE, scale =
     res <- raster::res(data)[1]
   } else if (is(data, "mesh3d")) {
     pts <- data.frame(t(data$vb)[,1:3])
-    res <- max(Rvcg::vcgMeshres(data)[[2]])
+    res <- quantile(Rvcg::vcgMeshres(data)[[2]], 0.75)
+  } else if (is(data, "data.frame") & ncol(data) == 3){
+    pts <- data
+    res <- min(lvec)
   } else {
-    stop("data must be of class RasterLayer or mesh3d with triangular mesh")
+    stop("data must be of class RasterLayer or mesh3d with triangular mesh or data.frame with 3 colums.")
   }
 
   names(pts) <- c("x", "y", "z")
@@ -58,10 +61,10 @@ fd_cubes <- function(data, lvec = NULL, plot = FALSE, keep_data = FALSE, scale =
 
   # some checks
   if (min(lvec) < res){
-    warning("The smallest scale included in lvec is smaller than recommended.")
+    message("The smallest scale included in lvec is smaller than the resolution. Consider adjusting lvec.")
   }
   if (max(lvec) < Lmax){
-    warning("The largest scale included in lvec is smaller than recommended. Consider adjusting to a size that encapsulate the entire mesh.")
+    message("The largest scale included in lvec is smaller than the size of the object.")
   }
 
   x0 <- min(pts[,1]) - res/2
